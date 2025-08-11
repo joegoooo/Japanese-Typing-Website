@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Japanese Typing Practice</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Results Screen -->
+        <div v-if="showResults" class="results-screen">
+            <div class="results-container">
+                <h1 class="results-title">Round Complete!</h1>
+                
+                <div class="results-stats">
+                    <div class="result-item">
+                        <div class="result-value">{{ roundStats.wpm }}</div>
+                        <div class="result-label">WPM</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-value">{{ roundStats.accuracy }}%</div>
+                        <div class="result-label">Accuracy</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-value">{{ roundStats.wordsCompleted }}</div>
+                        <div class="result-label">Words</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-value">{{ roundStats.timeSpent }}s</div>
+                        <div class="result-label">Time</div>
+                    </div>
+                </div>
+                
+                <div class="results-actions">
+                    <button @click="startNewRound" class="btn-primary">Try Again</button>
+                    <button @click="toggleKeyboardLayout" class="btn-secondary">
+                        {{ showJapaneseLayout ? 'Show QWERTY' : 'Show Kana' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Practice Screen -->
+        <div v-else class="practice-screen">
+            <div class="practice-container">
+                <!-- Header with minimal info -->
+                <div class="practice-header">
+                    <div class="app-title">日本語タイピング</div>
+                    <div class="word-counter">{{ wordsCompleted }}/10</div>
+                </div>
+
+                <!-- Main typing area -->
+                <div class="typing-section">
+                    <div class="word-display">
+                        <span v-for="(char, index) in currentWord" 
+                              :key="index" 
+                              :class="getCharacterClass(index)"
+                              class="word-character">
+                            {{ char }}
+                        </span>
+                    </div>
+
+                    <div class="input-area">
+                        <input 
+                            v-model="userInput" 
+                            @input="handleInput"
+                            @keydown="handleKeyDown"
+                            @keyup="handleKeyUp"
+                            @compositionstart="handleCompositionStart"
+                            @compositionupdate="handleCompositionUpdate"
+                            @compositionend="handleCompositionEnd"
+                            class="typing-input" 
+                            type="text" 
+                            placeholder="Type the word above..."
+                            :disabled="gameEnded"
+                            ref="typingInput">
+                    </div>
+
+                    <div v-if="feedback" :class="['feedback', feedbackType]">
+                        {{ feedback }}
+                    </div>
+                </div>
+
+                <!-- Keyboard -->
+                <div class="keyboard">
+                    <div class="keyboard-row">
+                        <div v-for="keyObj in row1" :key="keyObj.key" 
+                             :class="['key', { active: activeKey === keyObj.key }]">
+                            <div class="key-main">{{ showJapaneseLayout ? keyObj.kana : keyObj.key }}</div>
+                            <div class="key-sub" v-if="showJapaneseLayout">{{ keyObj.key }}</div>
+                        </div>
+                    </div>
+                    <div class="keyboard-row">
+                        <div class="key tab">Tab</div>
+                        <div v-for="keyObj in row2" :key="keyObj.key" 
+                             :class="['key', { active: activeKey === keyObj.key }]">
+                            <div class="key-main">{{ showJapaneseLayout ? keyObj.kana : keyObj.key }}</div>
+                            <div class="key-sub" v-if="showJapaneseLayout">{{ keyObj.key }}</div>
+                        </div>
+                    </div>
+                    <div class="keyboard-row">
+                        <div class="key caps">Caps</div>
+                        <div v-for="keyObj in row3" :key="keyObj.key" 
+                             :class="['key', { active: activeKey === keyObj.key }]">
+                            <div class="key-main">{{ showJapaneseLayout ? keyObj.kana : keyObj.key }}</div>
+                            <div class="key-sub" v-if="showJapaneseLayout">{{ keyObj.key }}</div>
+                        </div>
+                        <div class="key enter">Enter</div>
+                    </div>
+                    <div class="keyboard-row">
+                        <div class="key shift">Shift</div>
+                        <div v-for="keyObj in row4" :key="keyObj.key" 
+                             :class="['key', { active: activeKey === keyObj.key }]">
+                            <div class="key-main">{{ showJapaneseLayout ? keyObj.kana : keyObj.key }}</div>
+                            <div class="key-sub" v-if="showJapaneseLayout">{{ keyObj.key }}</div>
+                        </div>
+                        <div class="key shift">Shift</div>
+                    </div>
+                    <div class="keyboard-row">
+                        <div :class="['key', 'space', { active: activeKey === 'space' }]">Space</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
