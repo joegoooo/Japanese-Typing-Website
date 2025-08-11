@@ -291,6 +291,26 @@ body {
     box-shadow: 0 0 15px rgba(226, 183, 20, 0.4);
 }
 
+.key.next-key {
+    background: #4a90e2;
+    color: #ffffff;
+    border-color: #4a90e2;
+    box-shadow: 0 0 15px rgba(74, 144, 226, 0.4);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 15px rgba(74, 144, 226, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(74, 144, 226, 0.7);
+    }
+    100% {
+        box-shadow: 0 0 15px rgba(74, 144, 226, 0.4);
+    }
+}
+
 .key-main {
     font-size: 1.1em;
     font-weight: 500;

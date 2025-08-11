@@ -33,6 +33,7 @@ createApp({
             inputMethod: 'standard',
             isComposing: false,
             compositionText: '',
+            isWordComplete: false, // Add this flag to prevent multiple completions
             // Japanese JIS Keyboard Layout
             showJapaneseLayout: true,
             row1: [
@@ -70,6 +71,19 @@ createApp({
         accuracy() {
             if (this.totalChars === 0) return 100;
             return Math.round((this.correctChars / this.totalChars) * 100);
+        },
+        nextKey() {
+            if (!this.currentWord || this.userInput.length >= this.currentWord.length) {
+                return null;
+            }
+            
+            const nextChar = this.currentWord[this.userInput.length];
+            
+            // Find which key produces this character
+            const allKeys = [...this.row1, ...this.row2, ...this.row3, ...this.row4];
+            const keyMapping = allKeys.find(keyObj => keyObj.kana === nextChar);
+            
+            return keyMapping ? keyMapping.key : null;
         }
     },
     mounted() {
@@ -84,6 +98,7 @@ createApp({
             this.feedback = '';
             this.gameEnded = false;
             this.showResults = false;
+            this.isWordComplete = false; // Reset the completion flag
             this.$nextTick(() => {
                 if (this.$refs.typingInput) {
                     this.$refs.typingInput.focus();
@@ -100,11 +115,15 @@ createApp({
                 return; // Wait for composition to complete
             }
 
+            // Prevent duplicate word completion
+            if (this.isWordComplete) {
+                return;
+            }
+
             // Check if word is completed
             if (this.userInput === this.currentWord) {
+                this.isWordComplete = true; // Set flag to prevent multiple triggers
                 this.wordsCompleted++;
-                this.feedback = 'Perfect! Great job!';
-                this.feedbackType = 'correct';
                 this.correctChars += this.currentWord.length;
                 this.totalChars += this.currentWord.length;
                 
@@ -112,14 +131,14 @@ createApp({
                 if (this.wordsCompleted >= 10) {
                     this.endRound();
                 } else {
+                    // Move to next word immediately with shorter delay
                     setTimeout(() => {
                         this.newWord();
-                    }, 800);
+                    }, 300); // Reduced from 800ms to 300ms for better responsiveness
                 }
             } else if (this.userInput.length > this.currentWord.length) {
                 // User typed too much
-                this.feedback = 'Too many characters! Try again.';
-                this.feedbackType = 'incorrect';
+                // No feedback shown
             } else {
                 // Check current progress
                 let correct = true;
@@ -130,12 +149,8 @@ createApp({
                     }
                 }
                 
-                if (!correct) {
-                    this.feedback = 'Check your typing - there\'s a mistake!';
-                    this.feedbackType = 'incorrect';
-                } else {
-                    this.feedback = '';
-                }
+                // No feedback shown for incorrect typing
+                this.feedback = '';
             }
 
             // Update total characters for accuracy calculation
@@ -169,7 +184,10 @@ createApp({
             this.isComposing = false;
             this.compositionText = '';
             console.log('Composition ended, final text:', event.data);
-            // The input event will be triggered after this
+            // The input event will be triggered after this, so we need to wait a bit
+            this.$nextTick(() => {
+                this.handleInput();
+            });
         },
         handleKeyDown(event) {
             // Map the physical key to display on keyboard
@@ -236,6 +254,7 @@ createApp({
             this.wordsCompleted = 0;
             this.feedback = '';
             this.showResults = false;
+            this.isWordComplete = false; // Reset completion flag
             this.newWord();
         },
         
