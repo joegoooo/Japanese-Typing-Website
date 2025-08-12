@@ -1,4 +1,6 @@
-/* Base styles and typography */
+/* ====================================================================
+   BASE STYLES & TYPOGRAPHY
+   ================================================================== */
 * {
     margin: 0;
     padding: 0;
@@ -34,5 +36,5 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #e2b714;
+    background: #d1d0c5;
 }

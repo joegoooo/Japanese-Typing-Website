@@ -1,111 +1,85 @@
-// Input handling logic
-import { utils } from './utils.js';
+const InputHandler = {
+    /**
+     * Processes input from the text field for a seamless, auto-advancing experience.
+     * @param {object} app - The Vue application instance.
+     */
+    processInput(app) {
+        const inputField = app.$refs.textInput;
+        const inputValue = inputField.value;
 
-export const inputHandler = {
-    // Handle main input processing
-    handleInput() {
-        if (!this.startTime) {
-            this.startTime = Date.now();
-        }
+        // Debug - access .value for refs
+        console.log('processInput →', { 
+            inputValue, 
+            userInput: app.userInput.value, 
+            expected: app.currentWord.value 
+        });
 
-        // Handle Japanese IME composition
-        if (this.isComposing) {
-            return; // Wait for composition to complete
-        }
-
-        // Prevent duplicate word completion
-        if (this.isWordComplete) {
+        if (app.isWordComplete.value) {
+            inputField.value = '';  // Clear input field immediately
             return;
         }
 
-        // Check if word is completed
-        if (this.userInput === this.currentWord) {
-            this.completeWord();
-        } else if (this.userInput.length > this.currentWord.length) {
-            // User typed too much - no feedback shown
-        } else {
-            // Check current progress and update stats
-            this.updateStats();
-        }
-    },
+        const expected = app.currentWord.value;
+        const correctSoFar = app.userInput.value;
 
-    // Handle word completion
-    completeWord() {
-        this.isWordComplete = true;
-        this.wordsCompleted++;
-        this.correctChars += this.currentWord.length;
-        this.totalChars += this.currentWord.length;
-        
-        // Check if round is complete (after 10 words)
-        if (this.wordsCompleted >= 10) {
-            this.endRound();
-        } else {
-            // Move to next word with delay
-            setTimeout(() => {
-                this.newWord();
-            }, 300);
+        // Handle deletion (backspace)
+        if (inputValue.length < correctSoFar.length) {
+            app.userInput.value = inputValue;
+            app.charIndex.value = inputValue.length;
+            return;
         }
-    },
 
-    // Update statistics during typing
-    updateStats() {
-        if (this.userInput.length <= this.currentWord.length) {
-            this.totalChars = Math.max(this.totalChars, this.wordsCompleted * 5 + this.userInput.length);
-            
-            // Count correct characters
-            let correctCount = 0;
-            for (let i = 0; i < this.userInput.length; i++) {
-                if (this.userInput[i] === this.currentWord[i]) {
-                    correctCount++;
-                }
+        // Handle new input
+        if (expected.startsWith(inputValue) && inputValue.length > correctSoFar.length) {
+            const added = inputValue.length - correctSoFar.length;
+            app.userInput.value = inputValue;
+            app.charIndex.value = inputValue.length;
+            app.correctChars.value += added;
+            app.totalChars.value += added;
+
+            // **WORD DONE → ADVANCE**
+            if (app.userInput.value === expected) {
+                app.isWordComplete.value = true;
+                // Clear input field immediately when word is complete
+                inputField.value = '';
+                setTimeout(() => {
+                    app.nextWord();
+                }, app.config?.WORD_COMPLETION_DELAY || 300);
             }
-            this.correctChars = Math.max(this.correctChars, this.wordsCompleted * 5 + correctCount);
+        } else if (inputValue.length > correctSoFar.length) {
+            app.totalChars.value++;
+            // snap back on mistake
+            inputField.value = correctSoFar;
+        }
+    },
+
+    /**
+     * Handles keydown events for visual feedback.
+     * @param {object} app - The Vue application instance.
+     * @param {KeyboardEvent} event - The keydown event.
+     */
+    handleKeyDown(app, event) {
+        // Handle shift key detection
+        if (event.key === 'Shift') {
+            app.isShiftPressed.value = true;
         }
         
-        // Clear feedback for incorrect typing
-        this.feedback = '';
+        const mappedKey = GameUtils.mapPhysicalKey(event);
+        console.log('handleKeyDown → raw key:', event.key, 'mappedKey:', mappedKey);
+        app.activeKey.value = mappedKey;
     },
 
-    // Handle composition events for Japanese IME
-    handleCompositionStart(event) {
-        this.isComposing = true;
-        this.compositionText = '';
-        console.log('Composition started:', this.inputMethod);
-    },
-
-    handleCompositionUpdate(event) {
-        this.compositionText = event.data || '';
-        console.log('Composition update:', this.compositionText);
-    },
-
-    handleCompositionEnd(event) {
-        this.isComposing = false;
-        this.compositionText = '';
-        console.log('Composition ended, final text:', event.data);
-        
-        // Trigger input handling after composition
-        this.$nextTick(() => {
-            this.handleInput();
-        });
-    },
-
-    // Handle key events
-    handleKeyDown(event) {
-        this.activeKey = utils.mapPhysicalKey(event);
-        this.inputMethod = utils.detectInputMethod(event);
-    },
-
-    handleKeyUp() {
-        this.activeKey = '';
-    },
-
-    // Get character display class
-    getCharacterClass(index) {
-        if (index < this.userInput.length) {
-            return this.userInput[index] === this.currentWord[index] ? 'correct' : 'incorrect';
-        } else if (index === this.userInput.length) {
-            return 'current';
+    /**
+     * Handles keyup events to remove visual feedback.
+     * @param {object} app - The Vue application instance.
+     */
+    handleKeyUp(app) {
+        // Handle shift key release
+        if (event && event.key === 'Shift') {
+            app.isShiftPressed.value = false;
         }
-        return '';
+        
+        console.log('handleKeyUp → clearing activeKey');
+        app.activeKey.value = '';
     }
 };

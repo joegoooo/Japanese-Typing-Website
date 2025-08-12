@@ -1,76 +1,82 @@
-// Utility functions for the typing game
+// ====================================================================
+// GAME UTILITIES & HELPER FUNCTIONS  
+// ====================================================================
 
-export const utils = {
-    // Get random word from array
-    getRandomWord(words) {
-        const randomIndex = Math.floor(Math.random() * words.length);
-        return words[randomIndex];
+const GameUtils = {
+    // Generate random Japanese words for practice
+    generateWords: function(wordList, count) {
+        const shuffled = [...wordList].sort(() => Math.random() - 0.5);
+        return shuffled.slice(0, count);
     },
 
-    // Calculate WPM (Words Per Minute)
-    calculateWPM(correctChars, startTime) {
-        if (!startTime) return 0;
-        const minutes = (Date.now() - startTime) / 60000;
-        return Math.round((correctChars / 5) / minutes) || 0;
-    },
-
-    // Calculate accuracy percentage
-    calculateAccuracy(correctChars, totalChars) {
-        if (totalChars === 0) return 100;
-        return Math.round((correctChars / totalChars) * 100);
-    },
-
-    // Find key mapping for a character
-    findKeyForCharacter(character, keyboardRows) {
-        const allKeys = [...keyboardRows.row1, ...keyboardRows.row2, ...keyboardRows.row3, ...keyboardRows.row4];
-        const keyMapping = allKeys.find(keyObj => keyObj.kana === character);
-        return keyMapping ? keyMapping.key : null;
-    },
-
-    // Detect input method based on event
-    detectInputMethod(event) {
-        // Check if composition is happening (Japanese IME is active)
-        if (event.isComposing || event.keyCode === 229) {
-            return 'japanese-ime';
+    /**
+     * Get a random word from the word list
+     * @param {Array} wordList - Array of words to choose from
+     * @returns {string} Random word
+     */
+    getRandomWord(wordList) {
+        if (!wordList || wordList.length === 0) {
+            return 'こんにちは'; // fallback word
         }
-        
-        // Check input locale if available
-        if (event.inputType && event.inputType.includes('japanese')) {
-            return 'japanese-direct';
-        }
-        
-        // Detect by key patterns for romaji input
-        const romajiPattern = /^[a-zA-Z]$/;
-        if (romajiPattern.test(event.key)) {
-            return 'romaji';
-        }
-        
-        // Detect direct kana input
-        const kanaPattern = /[\u3040-\u309F\u30A0-\u30FF]/;
-        if (kanaPattern.test(event.key)) {
-            return 'kana-direct';
-        }
-        
-        return 'standard';
+        const randomIndex = Math.floor(Math.random() * wordList.length);
+        return wordList[randomIndex];
     },
 
-    // Get input method display name
-    getInputMethodName(inputMethod) {
-        const methods = {
-            'standard': 'Standard',
-            'romaji': 'Romaji → Kana',
-            'japanese-ime': 'Japanese IME',
-            'kana-direct': 'Direct Kana',
-            'japanese-direct': 'Japanese Direct'
-        };
-        return methods[inputMethod] || 'Unknown';
+    // Get current target character
+    getCurrentChar: function(currentWord, charIndex) {
+        return currentWord ? currentWord[charIndex] || '' : '';
     },
 
-    // Map physical key to display key
+    // Calculate Words Per Minute
+    calculateWPM: function(correctChars, timeElapsed) {
+        if (timeElapsed === 0) return 0;
+        return Math.round((correctChars / window.GAME_CONFIG.CHARS_PER_WORD) / (timeElapsed / 60));
+    },
+
+    /**
+     * Find which keyboard key produces a given character
+     * @param {string} character - The character to find
+     * @param {object} keyboardLayout - The keyboard layout object
+     * @param {object} shiftLayout - The shift keyboard layout object (optional)
+     * @returns {string|null} The key that produces this character
+     */
+    findKeyForCharacter(character, keyboardLayout, shiftLayout = null) {
+        // First check normal layout
+        let allKeys = [
+            ...keyboardLayout.row1, 
+            ...keyboardLayout.row2, 
+            ...keyboardLayout.row3, 
+            ...keyboardLayout.row4
+        ];
+        let keyMapping = allKeys.find(keyObj => keyObj.kana === character);
+        
+        if (keyMapping) {
+            return keyMapping.key;
+        }
+
+        // If not found and shift layout exists, check shift layout
+        if (shiftLayout) {
+            allKeys = [
+                ...shiftLayout.row1, 
+                ...shiftLayout.row2, 
+                ...shiftLayout.row3, 
+                ...shiftLayout.row4
+            ];
+            keyMapping = allKeys.find(keyObj => keyObj.kana === character);
+            return keyMapping ? keyMapping.key : null;
+        }
+
+        return null;
+    },
+
+    /**
+     * Map physical keyboard events to display keys
+     * @param {KeyboardEvent} event - The keyboard event
+     * @returns {string} Mapped key name
+     */
     mapPhysicalKey(event) {
         let displayKey = event.code ? event.code.replace('Key', '').replace('Digit', '').toLowerCase() : event.key.toLowerCase();
         
-        // Handle special keys
         if (event.key === ' ') {
             return 'space';
         } else if (event.key === 'Enter') {
@@ -78,5 +84,103 @@ export const utils = {
         }
         
         return displayKey;
-    }
+    },
+
+    // Format time display
+    formatTime: function(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    },
+
+    // Reset game statistics
+    resetStats: function() {
+        return {
+            startTime: null,
+            totalChars: 0,
+            correctChars: 0,
+            errors: 0
+        };
+    },
+
+    /**
+     * Calculate typing accuracy percentage
+     * @param {number} correctChars - Number of correct characters
+     * @param {number} totalChars - Total number of characters typed
+     * @returns {number} Accuracy percentage
+     */
+    calculateAccuracy(correctChars, totalChars) {
+        if (totalChars === 0) return 100;
+        return Math.round((correctChars / totalChars) * 100);
+    },
+
+    /**
+     * Process dakuten and handakuten combinations
+     * Converts sequences like "た゛" to "だ"
+     * @param {string} input - The input string to process
+     * @returns {string} Processed string with dakuten combinations
+     */
+    processDakutenCombinations(input) {
+        // Dakuten combinations
+        const dakutenMap = {
+            'か゛': 'が', 'き゛': 'ぎ', 'く゛': 'ぐ', 'け゛': 'げ', 'こ゛': 'ご',
+            'さ゛': 'ざ', 'し゛': 'じ', 'す゛': 'ず', 'せ゛': 'ぜ', 'そ゛': 'ぞ',
+            'た゛': 'だ', 'ち゛': 'ぢ', 'つ゛': 'づ', 'て゛': 'で', 'と゛': 'ど',
+            'は゛': 'ば', 'ひ゛': 'び', 'ふ゛': 'ぶ', 'へ゛': 'べ', 'ほ゛': 'ぼ'
+        };
+
+        // Handakuten combinations
+        const handakutenMap = {
+            'は゜': 'ぱ', 'ひ゜': 'ぴ', 'ふ゜': 'ぷ', 'へ゜': 'ぺ', 'ほ゜': 'ぽ'
+        };
+
+        let processed = input;
+
+        // Process dakuten combinations
+        Object.keys(dakutenMap).forEach(combination => {
+            processed = processed.replace(new RegExp(combination, 'g'), dakutenMap[combination]);
+        });
+
+        // Process handakuten combinations
+        Object.keys(handakutenMap).forEach(combination => {
+            processed = processed.replace(new RegExp(combination, 'g'), handakutenMap[combination]);
+        });
+
+        return processed;
+    },
+
+    /**
+     * Get the next expected character(s) for typing, handling dakuten combinations
+     * @param {string} currentWord - The word being typed
+     * @param {number} charIndex - Current character index
+     * @returns {string} The next character to display for guidance
+     */
+    getNextExpectedInput(currentWord, charIndex) {
+        if (!currentWord || charIndex >= currentWord.length) {
+            return '';
+        }
+
+        const nextChar = currentWord[charIndex];
+        
+        // Reverse dakuten map - from combined character to sequence
+        const reverseDakutenMap = {
+            'が': 'か゛', 'ぎ': 'き゛', 'ぐ': 'く゛', 'げ': 'け゛', 'ご': 'こ゛',
+            'ざ': 'さ゛', 'じ': 'し゛', 'ず': 'す゛', 'ぜ': 'せ゛', 'ぞ': 'そ゛',
+            'だ': 'た゛', 'ぢ': 'ち゛', 'づ': 'つ゛', 'で': 'て゛', 'ど': 'と゛',
+            'ば': 'は゛', 'び': 'ひ゛', 'ぶ': 'ふ゛', 'べ': 'へ゛', 'ぼ': 'ほ゛'
+        };
+
+        const reverseHandakutenMap = {
+            'ぱ': 'は゜', 'ぴ': 'ひ゜', 'ぷ': 'ふ゜', 'ぺ': 'へ゜', 'ぽ': 'ほ゜'
+        };
+
+        // Check if this character needs dakuten or handakuten
+        if (reverseDakutenMap[nextChar]) {
+            return reverseDakutenMap[nextChar];
+        } else if (reverseHandakutenMap[nextChar]) {
+            return reverseHandakutenMap[nextChar];
+        }
+
+        return nextChar;
+    },
 };
