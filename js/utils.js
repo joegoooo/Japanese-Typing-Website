@@ -76,14 +76,24 @@ const GameUtils = {
      */
     mapPhysicalKey(event) {
         let displayKey = event.code ? event.code.replace('Key', '').replace('Digit', '').toLowerCase() : event.key.toLowerCase();
+        console.log(event.key);
         
-        if (event.key === ' ') {
-            return 'space';
-        } else if (event.key === 'Enter') {
-            return 'enter';
+        switch(event.code) {
+            case ' ': return ' ';
+            case 'Enter': return 'enter';
+            case 'minus': return '-';
+            case 'equal': return '=';
+            case 'BracketLeft': return '[';
+            case 'BracketRight': return ']';
+            case 'Backslash': return '\\';
+            case 'Semicolon': return ';';
+            case 'Quote': return '"';
+            case 'Comma': return ',';
+            case 'Period': return '.';
+            case 'Slash': return '/';
+            default: return displayKey;
         }
         
-        return displayKey;
     },
 
     // Format time display

@@ -93,10 +93,35 @@ createApp({
             nextWord();
         };
 
+        const handleKeyDown = (event) => {
+            // Delegate ALL key handling to InputHandler
+            const app = {
+                isShiftPressed,
+                activeKey,
+                userInput,
+                currentWord,
+                charIndex,
+                isWordComplete,
+                correctChars,
+                totalChars,
+                config: GAME_CONFIG,
+                nextWord
+            };
+            InputHandler.handleKeyDown(app, event);
+        };
+
+        const handleKeyUp = (event) => {
+            // Delegate ALL key release handling to InputHandler
+            const app = {
+                isShiftPressed,
+                activeKey
+            };
+            InputHandler.handleKeyUp(app, event);
+        };
+
         const handleInput = (event) => {
             if (isComposing.value) return;
             
-            // Create app object for InputHandler
             const app = {
                 $refs: { textInput: event.target },
                 userInput,
@@ -112,29 +137,25 @@ createApp({
             InputHandler.processInput(app);
         };
 
-        const handleKeyDown = (event) => {
-            if (event.key === 'Shift') {
-                isShiftPressed.value = true;
-            }
-            activeKey.value = GameUtils.mapPhysicalKey(event);
-        };
-
-        const handleKeyUp = (event) => {
-            if (event.key === 'Shift') {
-                isShiftPressed.value = false;
-            }
-            activeKey.value = '';
-        };
-
         const handleCompositionStart = () => {
-            isComposing.value = true;
+            const app = { isComposing };
+            InputHandler.handleCompositionStart(app);
         };
 
         const handleCompositionEnd = (event) => {
-            isComposing.value = false;
-            if (event.target) {
-                handleInput(event);
-            }
+            const app = {
+                isComposing,
+                $refs: { textInput: event.target },
+                userInput,
+                currentWord,
+                isWordComplete,
+                correctChars,
+                totalChars,
+                charIndex,
+                config: GAME_CONFIG,
+                nextWord
+            };
+            InputHandler.handleCompositionEnd(app, event);
         };
 
         const toggleKeyboardLayout = () => {

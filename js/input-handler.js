@@ -1,13 +1,11 @@
 const InputHandler = {
     /**
-     * Processes input from the text field for a seamless, auto-advancing experience.
-     * @param {object} app - The Vue application instance.
+     * Processes text input for continuous typing flow
      */
     processInput(app) {
         const inputField = app.$refs.textInput;
         const inputValue = inputField.value;
 
-        // Debug - access .value for refs
         console.log('processInput →', { 
             inputValue, 
             userInput: app.userInput.value, 
@@ -15,7 +13,7 @@ const InputHandler = {
         });
 
         if (app.isWordComplete.value) {
-            inputField.value = '';  // Clear input field immediately
+            inputField.value = '';
             return;
         }
 
@@ -37,10 +35,9 @@ const InputHandler = {
             app.correctChars.value += added;
             app.totalChars.value += added;
 
-            // **WORD DONE → ADVANCE**
+            // Word completion
             if (app.userInput.value === expected) {
                 app.isWordComplete.value = true;
-                // Clear input field immediately when word is complete
                 inputField.value = '';
                 setTimeout(() => {
                     app.nextWord();
@@ -48,38 +45,72 @@ const InputHandler = {
             }
         } else if (inputValue.length > correctSoFar.length) {
             app.totalChars.value++;
-            // snap back on mistake
             inputField.value = correctSoFar;
         }
     },
 
     /**
-     * Handles keydown events for visual feedback.
-     * @param {object} app - The Vue application instance.
-     * @param {KeyboardEvent} event - The keydown event.
+     * Centralized keyboard event handling - ALL key logic here
      */
     handleKeyDown(app, event) {
-        // Handle shift key detection
+        console.log('InputHandler.handleKeyDown →', event.key);
+
+        // Handle Shift key for layout switching
         if (event.key === 'Shift') {
             app.isShiftPressed.value = true;
+            console.log('Shift pressed - switching to shift layout');
         }
-        
-        const mappedKey = GameUtils.mapPhysicalKey(event);
-        console.log('handleKeyDown → raw key:', event.key, 'mappedKey:', mappedKey);
-        app.activeKey.value = mappedKey;
+
+        // Handle special keys
+        if (event.key === 'Enter' || event.key === 'Backspace') {
+            event.preventDefault();
+            console.log('Prevented default for:', event.key);
+        }
+
+        // Set active key for visual feedback
+        app.activeKey.value = event.key;
+        console.log('Active key set to:', app.activeKey.value);
+
+        // Future: Add more key-specific logic here
+        // - Tab for skipping words
+        // - Escape for pausing
+        // - Arrow keys for navigation
     },
 
     /**
-     * Handles keyup events to remove visual feedback.
-     * @param {object} app - The Vue application instance.
+     * Centralized key release handling
      */
-    handleKeyUp(app) {
-        // Handle shift key release
-        if (event && event.key === 'Shift') {
+    handleKeyUp(app, event) {
+        console.log('InputHandler.handleKeyUp →', event.key);
+
+        // Handle Shift key release
+        if (event.key === 'Shift') {
             app.isShiftPressed.value = false;
+            console.log('Shift released - switching to normal layout');
         }
-        
-        console.log('handleKeyUp → clearing activeKey');
+
+        // Clear active key visual feedback
         app.activeKey.value = '';
+        console.log('Active key cleared');
+    },
+
+    /**
+     * Handle composition events for Japanese IME
+     */
+    handleCompositionStart(app) {
+        app.isComposing.value = true;
+        console.log('IME composition started');
+    },
+
+    /**
+     * Handle composition completion
+     */
+    handleCompositionEnd(app, event) {
+        app.isComposing.value = false;
+        console.log('IME composition ended:', event.data);
+        
+        if (event.target) {
+            this.processInput(app);
+        }
     }
 };
