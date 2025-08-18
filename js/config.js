@@ -72,6 +72,52 @@ window.SHIFT_KEYBOARD_LAYOUT = {
     ]
 };
 
+// Dakuten and Handakuten typing sequences
+window.DAKUTEN_MAP = {
+    // Dakuten (゛) combinations - base character + dakuten mark
+    'が': ['か', '゛'], 'ぎ': ['き', '゛'], 'ぐ': ['く', '゛'], 'げ': ['け', '゛'], 'ご': ['こ', '゛'],
+    'ざ': ['さ', '゛'], 'じ': ['し', '゛'], 'ず': ['す', '゛'], 'ぜ': ['せ', '゛'], 'ぞ': ['そ', '゛'],
+    'だ': ['た', '゛'], 'ぢ': ['ち', '゛'], 'づ': ['つ', '゛'], 'で': ['て', '゛'], 'ど': ['と', '゛'],
+    'ば': ['は', '゛'], 'び': ['ひ', '゛'], 'ぶ': ['ふ', '゛'], 'べ': ['へ', '゛'], 'ぼ': ['ほ', '゛'],
+    'ヴ': ['う', '゛'],
+
+    // Handakuten (゜) combinations - base character + handakuten mark  
+    'ぱ': ['は', '゜'], 'ぴ': ['ひ', '゜'], 'ぷ': ['ふ', '゜'], 'ぺ': ['へ', '゜'], 'ぽ': ['ほ', '゜']
+};
+
+// Reverse mapping for quick lookup - from base character to possible combinations
+window.BASE_TO_DAKUTEN = {
+    'か': ['が'], 'き': ['ぎ'], 'く': ['ぐ'], 'け': ['げ'], 'こ': ['ご'],
+    'さ': ['ざ'], 'し': ['じ'], 'す': ['ず'], 'せ': ['ぜ'], 'そ': ['ぞ'],
+    'た': ['だ'], 'ち': ['ぢ'], 'つ': ['づ'], 'て': ['で'], 'と': ['ど'],
+    'は': ['ば', 'ぱ'], 'ひ': ['び', 'ぴ'], 'ふ': ['ぶ', 'ぷ'], 'へ': ['べ', 'ぺ'], 'ほ': ['ぼ', 'ぽ'],
+    'う': ['ヴ']
+};
+
+// Helper function to get typing sequence for any character
+window.getTypingSequence = function(character) {
+    // Check if it's a dakuten/handakuten combination
+    if (DAKUTEN_MAP[character]) {
+        return DAKUTEN_MAP[character];
+    }
+    
+    // Regular character - just return it as single item array
+    return [character];
+};
+
+// Helper function to check if character needs dakuten/handakuten
+window.isDakutenCharacter = function(character) {
+    return DAKUTEN_MAP.hasOwnProperty(character);
+};
+
+// Helper function to get the base character for dakuten combinations
+window.getBaseCharacter = function(character) {
+    if (DAKUTEN_MAP[character]) {
+        return DAKUTEN_MAP[character][0]; // First element is base character
+    }
+    return character; // Return as-is if not a combination
+};
+
 // Game configuration
 window.GAME_CONFIG = {
     WORDS_PER_ROUND: 10,

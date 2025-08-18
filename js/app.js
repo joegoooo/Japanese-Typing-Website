@@ -25,6 +25,9 @@ createApp({
         const feedbackType = ref('');
         const isShiftPressed = ref(false);
 
+        // Add new reactive data for dakuten tracking
+        const dakutenIndex = ref(0); // Track which part of dakuten sequence we're on
+
         // ====================================================================
         // COMPUTED PROPERTIES
         // ====================================================================
@@ -32,9 +35,23 @@ createApp({
             if (!currentWord.value || charIndex.value >= currentWord.value.length) {
                 return null;
             }
+            
             const nextChar = currentWord.value[charIndex.value];
-            const layout = isShiftPressed.value ? SHIFT_KEYBOARD_LAYOUT : KEYBOARD_LAYOUT;
-            return GameUtils.findKeyForCharacter(nextChar, layout);
+            console.log('nextKey computed - nextChar:', nextChar, 'dakutenIndex:', dakutenIndex.value);
+            
+            // Check if it's a dakuten character
+            if (DAKUTEN_MAP[nextChar]) {
+                const typingSequence = DAKUTEN_MAP[nextChar];
+                const targetChar = typingSequence[dakutenIndex.value] || typingSequence[0];
+                console.log('Dakuten character detected:', { nextChar, typingSequence, targetChar, dakutenIndex: dakutenIndex.value });
+                
+                const layout = isShiftPressed.value ? SHIFT_KEYBOARD_LAYOUT : KEYBOARD_LAYOUT;
+                return GameUtils.findKeyForCharacter(targetChar, layout);
+            } else {
+                // Regular character
+                const layout = isShiftPressed.value ? SHIFT_KEYBOARD_LAYOUT : KEYBOARD_LAYOUT;
+                return GameUtils.findKeyForCharacter(nextChar, layout);
+            }
         });
 
         // Keyboard layout rows
@@ -71,6 +88,7 @@ createApp({
             currentWord.value = GameUtils.getRandomWord(JAPANESE_WORDS);
             userInput.value = '';
             charIndex.value = 0;
+            dakutenIndex.value = 0; // Reset dakuten progress
             isWordComplete.value = false;
 
             console.log('New word set:', currentWord.value);
@@ -105,6 +123,7 @@ createApp({
                 correctChars,
                 totalChars,
                 config: GAME_CONFIG,
+                nextKey,
                 nextWord
             };
             InputHandler.handleKeyDown(app, event);
